@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="616e058c-f31d-4757-85f0-d76f7a046b02" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/preprocessing/preproc.py" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/preprocCody.py" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/nBayes/nBayes.py" afterPath="$PROJECT_DIR$/nBayes/nBayes.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="mlgroup5.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -25,11 +27,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="preprocCody.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="preprocCody.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/processing/preprocCody.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.74533105" vertical-offset="1616" max-vertical-offset="2520">
-              <caret line="216" column="33" selection-start-line="216" selection-start-column="33" selection-end-line="216" selection-end-column="33" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="146" max-vertical-offset="735">
+              <caret line="225" column="4" selection-start-line="225" selection-start-column="4" selection-end-line="225" selection-end-column="18" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
                 <element signature="e#91#355#0" expanded="false" />
@@ -37,6 +39,22 @@
                 <element signature="e#770#1462#0" expanded="false" />
                 <element signature="e#1508#2356#0" expanded="false" />
                 <element signature="e#2407#2777#0" expanded="false" />
+                <element signature="e#2820#4398#0" expanded="false" />
+                <element signature="e#4443#5614#0" expanded="false" />
+                <element signature="e#5659#6177#0" expanded="false" />
+                <element signature="e#6228#6875#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="nBayes.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/nBayes/nBayes.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.61120546" vertical-offset="0" max-vertical-offset="675">
+              <caret line="24" column="0" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#9#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -58,6 +76,8 @@
         <option value="$PROJECT_DIR$/preprocessing/preprocCody.py" />
         <option value="$PROJECT_DIR$/preprocCody.py" />
         <option value="$PROJECT_DIR$/processing/preprocCody.py" />
+        <option value="$PROJECT_DIR$/processing/preproc.py" />
+        <option value="$PROJECT_DIR$/nBayes/nBayes.py" />
       </list>
     </option>
   </component>
@@ -122,6 +142,20 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="processing" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="mlgroup5" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="mlgroup5" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="nBayes" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -343,10 +377,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/processing/preproc.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="589">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/processing/preprocCody.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.74533105" vertical-offset="1616" max-vertical-offset="2520">
-          <caret line="216" column="33" selection-start-line="216" selection-start-column="33" selection-end-line="216" selection-end-column="33" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="146" max-vertical-offset="735">
+          <caret line="225" column="4" selection-start-line="225" selection-start-column="4" selection-end-line="225" selection-end-column="18" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
             <element signature="e#91#355#0" expanded="false" />
@@ -354,6 +396,20 @@
             <element signature="e#770#1462#0" expanded="false" />
             <element signature="e#1508#2356#0" expanded="false" />
             <element signature="e#2407#2777#0" expanded="false" />
+            <element signature="e#2820#4398#0" expanded="false" />
+            <element signature="e#4443#5614#0" expanded="false" />
+            <element signature="e#5659#6177#0" expanded="false" />
+            <element signature="e#6228#6875#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/nBayes/nBayes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.61120546" vertical-offset="0" max-vertical-offset="675">
+          <caret line="24" column="0" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
           </folding>
         </state>
       </provider>
