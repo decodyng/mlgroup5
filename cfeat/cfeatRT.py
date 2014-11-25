@@ -17,7 +17,7 @@ import chooseFeature
 classTabulations = open("../nBayes/classTabulationsDict.json")
 classTabulationsDict = pd.io.json.read_json(classTabulations)
 
-featureSet = open("../data/kaggleFinal.json")
+featureSet = open("../data/kaggleNoStopWords.json")
 featureDict = pd.io.json.read_json(featureSet)
 
 X = featureDict
@@ -25,37 +25,74 @@ y = featureDict["rating"]
 
 del X["rating"]
 
-presenceScores = [0, 1, 2, 3, 4]
-presenceScores[0] = []
-presenceScores[1] = []
-presenceScores[2] = []
-presenceScores[3] = []
-presenceScores[4] = []
+index = 0
 
+mostCommonClassList = []
+mostFrequentClassList = []
 
-for row in X["words"]:
+for row in X["words_nostopwords"]:
+    presenceScores = [i for i in range(5)]
+    frequencyScores = [j for j in range(5)]
+    for k in range(5):
+        presenceScores[k] = []
+        frequencyScores[k] = []
     mostCommonClass = 0
-    highestProb = 0.0
+    mostFrequentClass = 0
+    highestPres = 0.0
+    highestFreq = 0.0
     for word in row:
         for rating in range(5):
-            presenceInClass = classTabulationsDict.loc[word][rating]/classTabulationsDict.loc["totalWords"][rating]
-            if np.isnan(presenceInClass):
+            # calculate presence of the word in a given class
+            if np.isnan(classTabulationsDict.loc[word][rating]):
                 presenceInClass = 0
+            elif classTabulationsDict.loc[word][rating] > 0:
+                presenceInClass = 1
+            # calculate the frequency with which the word appears in a given class
+            frequencyInClass = classTabulationsDict.loc[word][rating]/classTabulationsDict.loc["totalWords"][rating]
+            if np.isnan(frequencyInClass):
+                frequencyInClass = 0
+
             presenceScores[rating].append(presenceInClass)
+            frequencyScores[rating].append(presenceInClass)
+
     for rating in range(5):
-        avgProb = np.mean(presenceScores[rating])
-        if avgProb > highestProb:
+        avgPres = np.mean(presenceScores[rating])
+        avgFreq = np.mean(frequencyScores[rating])
+        if avgPres > highestPres:
             mostCommonClass = rating
-            highestProb = avgProb
-    print mostCommonClass
+            highestProb = avgPres
+        if avgFreq > highestFreq:
+            mostFrequentClass = rating
+            highestFreq = avgFreq
+
+    mostCommonClassList.append(mostCommonClass)
+    mostFrequentClassList.append(mostFrequentClass)
+    index += 1
+
+X["mostCommonClass"] = mostCommonClassList
+X["mostFrequentClass"] = mostFrequentClassList
+
+del X["review"]
+del X["words"]
+del X["words_nostopwords"]
+
+print X.loc[1]
+
+# Train and test
+
+X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15)
+
+cfeat = chooseFeature.chooseFeature()
+cfeat.fit(X_train, y_train)
+predicted = cfeat.predict(X_test)
 
 
-#print classTabulationsDict
+i = 0
+correct = 0
+for p in predicted:
+    if p == y_test[i]:
+        correct += 1
 
-# X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.2)
-#
-# cfeat = chooseFeature.chooseFeature()
-# cfeat.fit(X_train, y_train)
-
-
-#chooseFeature.predict
+print "Correct: ", correct
+print "Total: ", len(predicted)
+print "Rate: ", float(correct)/len(predicted)*100
