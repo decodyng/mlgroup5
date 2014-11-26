@@ -22,5 +22,5 @@ def removeStopWords(inputFName, outputFName):
     json.dump(inJSON, outJSON)
     outJSON.close()
 
-
-removeStopWords("../data/kaggleFinal.json", "../data/kaggleNoStopWords.json")
+if __name__ == "__main__":
+    removeStopWords("../data/kaggleFinal.json", "../data/kaggleNoStopWords.json")
