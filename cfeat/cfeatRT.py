@@ -19,6 +19,7 @@ classTabulationsDict = pd.io.json.read_json(classTabulations)
 
 featureSet = open("../data/kaggleNoStopWords.json")
 featureDict = pd.io.json.read_json(featureSet)
+featureDict.reindex(np.random.permutation(featureDict.index))
 
 X = featureDict
 y = featureDict["rating"]
@@ -76,11 +77,19 @@ del X["review"]
 del X["words"]
 del X["words_nostopwords"]
 
-print X.loc[1]
+#print X.loc[1]
 
 # Train and test
 
-X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15)
+X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15, random_state=35)
+
+print X_train
+print "********************************"
+print X_test
+print "********************************"
+print y_train
+print "********************************"
+print y_test
 
 cfeat = chooseFeature.chooseFeature()
 cfeat.fit(X_train, y_train)
@@ -92,7 +101,11 @@ correct = 0
 for p in predicted:
     if p == y_test[i]:
         correct += 1
+        print "p is ", p, "and y_test is ", y_test[i], " - ", correct, " correct"
+    i += 1
 
 print "Correct: ", correct
 print "Total: ", len(predicted)
 print "Rate: ", float(correct)/len(predicted)*100
+
+20432
