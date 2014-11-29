@@ -3,7 +3,8 @@ __author__ = 'tunc'
 from nltk.tokenize import RegexpTokenizer
 import json
 
-
+from nltk.tokenize import RegexpTokenizer
+import json
 
 def split_clean_words(inputFName,outputFName):
     '''
