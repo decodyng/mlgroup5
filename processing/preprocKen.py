@@ -15,12 +15,12 @@ def removeStopWords(inputFName, outputFName):
     stop = stopwords.words('english')
     for entry in inJSON:
         entry["words_nostopwords"] = []
-        for word in entry["words"]:
-            if word not in stop:
+        for word in entry["words_cleaned"]:
+            if word.lower() not in stop:
                 entry["words_nostopwords"].append(word)
     outJSON = open(outputFName, "w")
     json.dump(inJSON, outJSON)
     outJSON.close()
 
 if __name__ == "__main__":
-    removeStopWords("../data/kaggleFinal.json", "../data/kaggleNoStopWords.json")
+    removeStopWords("../data/kaggle_cleaned_words.json", "../data/kaggleNoStopWords.json")

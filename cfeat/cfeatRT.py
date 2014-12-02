@@ -107,5 +107,3 @@ for p in predicted:
 print "Correct: ", correct
 print "Total: ", len(predicted)
 print "Rate: ", float(correct)/len(predicted)*100
-
-20432
