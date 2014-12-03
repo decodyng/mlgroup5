@@ -1,3 +1,4 @@
+__author__ = 'kensimonds'
 import json
 import sys
 sys.path.insert(0,"../kaggle/")
@@ -5,27 +6,29 @@ sys.path.insert(0,"../kaggle/")
 import numpy as np
 
 from sklearn.pipeline import Pipeline
-from sklearn.svm import SVC
 from sklearn.grid_search import GridSearchCV
-import sklearn.preprocessing as preproc
+from sklearn.svm import SVC
 import sklearn.feature_extraction.text as fe
 import sklearn.cross_validation as cv
 from sklearn import metrics
 import makeSubmission
+import pandas as pd
 
-featureSet = open("../data/kaggle.json")
-featureDict = json.load(featureSet)
-#featureDict.reindex(np.random.permutation(featureDict.index))
+featureSet = open("../data/kaggleFinal.json")
+featureDict = pd.io.json.read_json(featureSet)
+featureDict.reindex(np.random.permutation(featureDict.index))
 
-X = [item["review"] for item in featureDict]
-y = [item["rating"] for item in featureDict]
 
-#del X["rating"]
+X = []
+y = featureDict["rating"]
 
-#print X
+for item in featureDict["words"]:
+    X.append(' '.join(item))
 
 rand = np.random.RandomState()
 X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15, random_state=rand)
+
+#print X_train
 
 # vec = fe.CountVectorizer()
 # print vec
@@ -35,10 +38,8 @@ X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15, r
 # print x
 
 rt_clf = Pipeline([('vect', fe.CountVectorizer(ngram_range=(1,2))),
-                   ('tfidf', fe.TfidfTransformer(use_idf=True, smooth_idf=True, sublinear_tf=True)),
-                   #('std', preproc.StandardScaler(with_mean=False)),
-                   #('norm', preproc.Normalizer()),
-                   ('svc', SVC(C=10, kernel = 'rbf', gamma=1))])
+                   ('tfidf', fe.TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True)),
+                   ('svc', SVC(C=10.0, kernel='rbf', gamma=1.0))])
 
 rt_clf.fit(X_train, y_train)
 predicted = rt_clf.predict(X_test)
@@ -48,7 +49,6 @@ print np.mean(predicted == y_test)
 
 #makeSubmission.makeSubmission(rt_clf, "svm")
 
-
 parameters = {#'vect__ngram_range': [(1, 1), (1, 2)],
               #'tfidf__norm': ('l1', 'l2', None),
               'svc__kernel': ('rbf', 'linear', 'poly', 'sigmoid'),
@@ -57,12 +57,13 @@ parameters = {#'vect__ngram_range': [(1, 1), (1, 2)],
                 }
 
 
-# gs_clf = GridSearchCV(rt_clf, parameters, n_jobs=-1)
-# gs_clf = gs_clf.fit(X_train, y_train)
-# best_parameters, score, _ = max(gs_clf.grid_scores_, key=lambda x: x[1])
-# for param_name in sorted(parameters.keys()):
-#     print("%s: %r" % (param_name, best_parameters[param_name]))
-# print score
+gs_clf = GridSearchCV(rt_clf, parameters, n_jobs=-1)
+gs_clf = gs_clf.fit(X_train, y_train)
+best_parameters, score, _ = max(gs_clf.grid_scores_, key=lambda x: x[1])
+for param_name in sorted(parameters.keys()):
+    print("%s: %r" % (param_name, best_parameters[param_name]))
+print score
+
 
 # Trial 1
 # Default values produced accuracy of 0.39

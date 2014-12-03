@@ -9,10 +9,6 @@ import chooseFeature
 
 # p19-22 TFIDF, Freq Dist, Bigrams, Collocation
 
-# data = pd.read_table("../data/kaggle_roots.tsv", header = None)
-#
-# words = data[0]
-# ratings = data[1]
 
 classTabulations = open("../nBayes/classTabulationsDict.json")
 classTabulationsDict = pd.io.json.read_json(classTabulations)

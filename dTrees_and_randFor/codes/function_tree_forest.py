@@ -394,7 +394,7 @@ def addFrequencies(inputFName1,inputFName2,myindex):
     word_category=pd.DataFrame(inJSON1)
     word_category.columns=['words']
     if not 'rating' in pd.DataFrame(inJSON2).columns:
-        # add a rating column to prevent the code to fail for the test set in Kaggle
+        # add a rating column to prevent the code to fail for the test set in kaggle
         word_category['rating']=np.array([0]*word_category.shape[0])
     else:  
         word_category['rating']=pd.DataFrame(inJSON2)['rating']
