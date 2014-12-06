@@ -2,18 +2,16 @@ __author__ = 'kensimonds'
 
 import pandas as pd
 import numpy as np
-import nltk
-import json
 import sklearn.cross_validation as cv
+from sklearn import metrics
 import chooseFeature
 
-# p19-22 TFIDF, Freq Dist, Bigrams, Collocation
-
-
+# Dictionary of words tabulated by class (0-4)
 classTabulations = open("../nBayes/classTabulationsDict.json")
 classTabulationsDict = pd.io.json.read_json(classTabulations)
 
-featureSet = open("../data/kaggleNoStopWords.json")
+# Input feature set
+featureSet = open("../data/kaggleFinal.json")
 featureDict = pd.io.json.read_json(featureSet)
 featureDict.reindex(np.random.permutation(featureDict.index))
 
@@ -27,7 +25,8 @@ index = 0
 mostCommonClassList = []
 mostFrequentClassList = []
 
-for row in X["words_nostopwords"]:
+# Iterate through each review
+for row in X["words"]:
     presenceScores = [i for i in range(5)]
     frequencyScores = [j for j in range(5)]
     for k in range(5):
@@ -37,21 +36,28 @@ for row in X["words_nostopwords"]:
     mostFrequentClass = 0
     highestPres = 0.0
     highestFreq = 0.0
+    # Iterate through each word in the review
     for word in row:
+        # For every word compare it to the tabulated dictionary for each class
         for rating in range(5):
-            # calculate presence of the word in a given class
-            if np.isnan(classTabulationsDict.loc[word][rating]):
-                presenceInClass = 0
-            elif classTabulationsDict.loc[word][rating] > 0:
-                presenceInClass = 1
-            # calculate the frequency with which the word appears in a given class
-            frequencyInClass = classTabulationsDict.loc[word][rating]/classTabulationsDict.loc["totalWords"][rating]
-            if np.isnan(frequencyInClass):
-                frequencyInClass = 0
+            try:
+                # calculate presence of the word in a given class
+                if np.isnan(classTabulationsDict.loc[word.lower()][rating]):
+                    presenceInClass = 0
+                elif classTabulationsDict.loc[word.lower()][rating] > 0:
+                    presenceInClass = 1
+                # calculate the frequency with which the word appears in a given class
+                frequencyInClass = classTabulationsDict.loc[word.lower()][rating]/classTabulationsDict.loc["totalWords"][rating]
+                if np.isnan(frequencyInClass):
+                    frequencyInClass = 0
 
-            presenceScores[rating].append(presenceInClass)
-            frequencyScores[rating].append(presenceInClass)
+                presenceScores[rating].append(presenceInClass)
+                frequencyScores[rating].append(presenceInClass)
+            except KeyError:
+                continue
 
+    # Calculate average Word Presence and Word Frequency scores per review
+    # Remember the class with the highest value for this review
     for rating in range(5):
         avgPres = np.mean(presenceScores[rating])
         avgFreq = np.mean(frequencyScores[rating])
@@ -66,40 +72,22 @@ for row in X["words_nostopwords"]:
     mostFrequentClassList.append(mostFrequentClass)
     index += 1
 
+# Add the two new features to the dataframe
 X["mostCommonClass"] = mostCommonClassList
 X["mostFrequentClass"] = mostFrequentClassList
 
+# Delete the non-numeric feature columns (chooseFeature can't handle them)
 del X["review"]
 del X["words"]
-del X["words_nostopwords"]
 
-#print X.loc[1]
+# Create an 85/15 train/test split
+X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15)
 
-# Train and test
-
-X_train, X_test, y_train, y_test = cv.train_test_split(X, y, test_size = 0.15, random_state=35)
-
-print X_train
-print "********************************"
-print X_test
-print "********************************"
-print y_train
-print "********************************"
-print y_test
-
+# Create, fit, and predict the chooseFeature class
 cfeat = chooseFeature.chooseFeature()
 cfeat.fit(X_train, y_train)
 predicted = cfeat.predict(X_test)
 
-
-i = 0
-correct = 0
-for p in predicted:
-    if p == y_test[i]:
-        correct += 1
-        print "p is ", p, "and y_test is ", y_test[i], " - ", correct, " correct"
-    i += 1
-
-print "Correct: ", correct
-print "Total: ", len(predicted)
-print "Rate: ", float(correct)/len(predicted)*100
+# Evaluate
+print metrics.classification_report(y_test, predicted)
+print np.mean(predicted == y_test)
