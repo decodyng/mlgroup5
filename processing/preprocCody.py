@@ -2,17 +2,25 @@ import json
 import pandas as pd
 import os
 import re
+from random import shuffle
 import nltk
 
-def tsvToJSON(fName):
+def tsvToJSON(fName, type="default"):
     """
     :param fName: name of tsv file
     :return: JSONified string of tsv file
     """
-    tsvData = pd.read_table(fName, header=None)
-    tsvData.columns = ["review", "rating"]
-    print tsvData
-    outJSON = tsvData.to_json(orient='records')
+
+    if type == "kaggleTest":
+        tsvData = pd.read_table(fName, header=0)
+        tsvData.columns = ["phraseID", "sentenceID", "review"]
+    elif type == "kaggleTrain":
+        tsvData = pd.read_table(fName, header=0)
+        tsvData.columns = ["phraseID", "sentenceID", "review", "rating"]
+    else:
+        tsvData = pd.read_table(fName, header=None)
+        tsvData.columns = ["review", "rating"]
+    outJSON = tsvData.to_dict(outtype='records')
     return outJSON
 
 def splitWords(inputFName, outputFName):
@@ -21,8 +29,11 @@ def splitWords(inputFName, outputFName):
     :return: JSON string w/ "words": [word, word, word]
     """
     inJSON = json.load(open(inputFName, "r"))
+    i = 0
     for entry in inJSON:
         entry["words"] = entry["review"].split(" ")
+        entry["ID"] = i
+        i += 1
     jsonOut = open(outputFName, "w")
     json.dump(inJSON, jsonOut)
     jsonOut.close()
@@ -187,14 +198,14 @@ def stemming(inputFName, outputFName):
     inFile.close()
     porter = nltk.PorterStemmer()
     for entry in inJSON:
-        for j in range(len(entry["words"])):
-            word = entry["words"][j]
+        for j in range(len(entry["words_nostopwords"])):
+            word = entry["words_nostopwords"][j]
 
             if re.match('not_.*', word):
                 word = word[4:]
-                entry["words"][j] = "not_" + porter.stem(word)
+                entry["words_nostopwords"][j] = "not_" + porter.stem(word)
             else:
-                entry["words"][j] = porter.stem(word)
+                entry["words_nostopwords"][j] = porter.stem(word)
     outJSON = open(outputFName, "w")
     json.dump(inJSON, outJSON)
     outJSON.close()
@@ -204,21 +215,42 @@ def propNounConcat(inputFName, outputFName):
     inJSON = json.load(inFile)
     inFile.close()
     for entry in inJSON:
-        numWords = len(entry["words"])
+        numWords = len(entry["words_nostopwords"])
         j = 0
         while j < numWords:
-            word = entry["words"][j]
-            if word[0].isupper() and j+1 < numWords:
-                word2 = entry["words"][j+1]
-                if word2[0].isupper():
-                    joinedWord = word + "_" + word2
-                    entry["words"][j] = joinedWord
-                    del entry["words"][j+1]
-                    numWords -= 1
+            word = entry["words_nostopwords"][j]
+            try:
+                if word[0].isupper() and j+1 < numWords:
+                    word2 = entry["words_nostopwords"][j+1]
+                    if word2[0].isupper():
+                        joinedWord = word + "_" + word2
+                        entry["words_nostopwords"][j] = joinedWord
+                        del entry["words_nostopwords"][j+1]
+                        numWords -= 1
+            except IndexError:
+                print word
             j += 1
     outJSON = open(outputFName, "w")
     json.dump(inJSON, outJSON)
     outJSON.close()
+
+def breakWords(inputFName, outputFName):
+    inFile = open(inputFName, "r")
+    inJSON = json.load(inFile)
+    inFile.close()
+    for entry in inJSON:
+        for word in entry["words_nostopwords"]:
+            if word not in entry:
+                entry[word] = 0
+            try:
+                entry[word] += 1
+            except TypeError:
+                print word
+
+    outJSON = open(outputFName, "w")
+    json.dump(inJSON, outJSON)
+    outJSON.close()
+
 
 
 
