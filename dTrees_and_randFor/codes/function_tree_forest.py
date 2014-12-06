@@ -1,3 +1,4 @@
+import operator
 import json
 import numpy as np
 import pandas as pd
@@ -10,51 +11,40 @@ from nltk.tokenize import RegexpTokenizer
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-
+from sklearn.naive_bayes import BernoulliNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import cross_validation
 from sklearn.cross_validation import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 
-#Functions: Data Transform
 
-def transform_sklearn_dictionary(input_dict):
-    """ Input: input_dict: a Python dictionary or dictionary-like object containing
-    at least information to populate a labeled dataset, L={X,y}
-    return:
-    X: a list of lists. The length of inner lists should be the number of features,
-     and the length of the outer list should be the number of examples.
-    y: a list of target variables, whose length is the number of examples.
-    X & y are not required to be numpy arrays, but you may find it convenient to make them so.
-    """
-    X=np.asarray(input_dict['data'])
-    y=np.asarray(input_dict['target'])
-    return X, y
+from sklearn.metrics import roc_curve, auc
+from sklearn.cross_validation import train_test_split
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
 
 
-def transform_csv(data, target_col=0, ignore_cols=None):
-    """ Input: data: a pandas DataFrame
-    return: a Python dictionary with same keys as those used in sklearn's iris dataset
-    (you don't have to create an object of the same data type as those in sklearn's datasets)
-    """
-    if target_col==0:target_col="target"
+
+############################################################################################################
+############################################## Functions: Data Transform ###################################
+############################################################################################################
+def transform_pd(data, target_col=None, ignore_cols=None):
+
     if ignore_cols==None: ignore_cols=[]
 
-    df_feature_names=[i for i in data.columns.values if not (i==target_col or i in ignore_cols)]
+    df_feature_names=[i for i in data.columns.values if not i in ([target_col]+list(ignore_cols))]
     df_data=data[df_feature_names]
-    df_target=data[target_col]
-    df_target_names=df_target.unique()
-
-    my_dictionary={}
-    my_dictionary['feature_names']=np.asarray(df_feature_names)
-    my_dictionary['data']=np.asarray(df_data)
-    my_dictionary["target"]=np.asarray(df_target)
-    my_dictionary['target_names']=np.asarray(df_target_names)
-    my_dictionary['DESCR']=""
-    return my_dictionary
+     
+    X=np.asarray(df_data)
+    if not target_col==None:
+        y=np.asarray(data[target_col])
+        return X, y
+    return X
 
 
-# Functions: Prepare Data Files
+############################################################################################################
+############################################## Functions: Prepare Data Files ###############################
+############################################################################################################
 
 
 def split_train_test(inputFName,outputFName,train_path,test_path,test_percentage=0.15,shuffle=False):
@@ -261,8 +251,7 @@ def posTag(inputFName, outputFName):
         dummy["numDet"] = numDet
         pos_Tag.append(dummy)
         i += 1
-        if i % 1000 == 0:
-            print i
+
 
     outJSON = open(outputFName, "w")
     json.dump(pos_Tag, outJSON)
@@ -298,8 +287,7 @@ def negation(inputFName, outputFName):
                     negativeTerritory -= 1
         mynegation.append({'words':entry["words"]})
         numProcessed += 1
-        if numProcessed % 1000 == 0:
-            print numProcessed
+
 
     outJSON = open(outputFName, "w")
     json.dump(mynegation, outJSON)
@@ -352,6 +340,9 @@ def propNounConcat(inputFName, outputFName):
     json.dump(my_propNounConcat, outJSON)
     outJSON.close()
 
+
+
+
 def removeStopWords(inputFName, outputFName):
     '''
     :param inputFName: name of JSON file with word splits
@@ -376,36 +367,38 @@ def removeStopWords(inputFName, outputFName):
     json.dump(my_removeStopWords, outJSON)
     outJSON.close()
 
-# Functions: Prepare Data Frames I
+############################################################################################################
+########################################### Functions: Prepare Data Frames I ###############################
+############################################################################################################
 
-def prepare_data(current_path,inputFilenames,outputFilenames,myFunctions):
-    for i in range(len(myFunctions)):
-        
-        myFunction=myFunctions[i]      
-        inputFName=current_path+inputFilenames[i]
-        outputFName=current_path+outputFilenames[i]
-        myFunction(inputFName, outputFName)
-
-def addFrequencies(inputFName1,inputFName2,myindex):
-
+def get_ratings_words(inputFName1,inputFName2,myindex=None):
+    
+    
     inJSON1 = json.load(open(inputFName1, "r"))
     inJSON2 = json.load(open(inputFName2, "r"))
     
     word_category=pd.DataFrame(inJSON1)
     word_category.columns=['words']
+
+    word_category['rating']=pd.DataFrame(inJSON2)['rating']
+
     if not 'rating' in pd.DataFrame(inJSON2).columns:
         # add a rating column to prevent the code to fail for the test set in kaggle
         word_category['rating']=np.array([0]*word_category.shape[0])
     else:  
         word_category['rating']=pd.DataFrame(inJSON2)['rating']
+
     if not myindex==None:
         word_category=word_category.ix[myindex,:]
-        
 
+    is_train=True
     ratings_words={}
     for i in range(0,5):
         ratings_words[i]=word_category[word_category['rating']==i][['words']]
 
+    return (ratings_words)
+def get_frequencies(ratings_words):
+    
     ratings_freq={}
     for i in range(0,5):
         a=list(ratings_words[i].ix[:,0])
@@ -415,20 +408,30 @@ def addFrequencies(inputFName1,inputFName2,myindex):
         if len(ratings_freq[i])<min_len:
             min_len=len(ratings_freq[i])
 
-
+    return (ratings_freq)
+def get_frequency_columns(ratings_freq,inputFName1,myindex=None):
+    # cerates the data frame for the frequencies
+    inJSON1 = json.load(open(inputFName1, "r"))
+    word_category=pd.DataFrame(inJSON1)
+    word_category.columns=['words']
+    if not myindex==None:
+        word_category=word_category.ix[myindex,:]
     def fregFunc(elt,k):
-        return sum([ratings_freq[k][i] if  ratings_freq[k].has_key(i) else 0 for i in elt])
-
+        return sum([ratings_freq[k][i] if  ratings_freq[k].has_key(i) else 0 for i in elt])   
     for i in range(0,5):
         dummy=word_category['words'].map(lambda x: fregFunc(x,i))
-        dummy=(dummy-np.mean(dummy))/np.std(dummy)
         word_category['freq'+str(i)]=dummy
         
-    return (word_category,ratings_words)
+    freq_cols=[elt for elt  in word_category.columns if not elt =='words']
+    
+    #df=word_category[freq_cols]
+    #return(df.div(np.where(df.sum(axis=1)>0,df.sum(axis=1),1), axis=0))
 
-def addTFIDF(inputFName1,inputFName2,myindex):
-    word_category,ratings_words=addFrequencies(inputFName1,inputFName2,myindex)
-    #print(word_category)
+    return (word_category[freq_cols])
+
+
+def get_ratings_tfidf(ratings_words):
+
     ratings_text={}
     #create text files for each category
     for i in range(5):
@@ -445,15 +448,30 @@ def addTFIDF(inputFName1,inputFName2,myindex):
         ratings_tfidf[i]={}
         for col in response.nonzero()[1]:
             ratings_tfidf[i][feature_names[col]]=response[0, col]
+    return(ratings_tfidf)
+
+def get_TFIDF_columns(ratings_tfidf,inputFName1,myindex=None):
+    # cerates the data frame for the TFIDF
+    inJSON1 = json.load(open(inputFName1, "r"))
+    word_category=pd.DataFrame(inJSON1)
+    word_category.columns=['words']
+    if not myindex==None:
+        word_category=word_category.ix[myindex,:]
+
     def tfidfFunc(elt,k):
         return sum([ratings_tfidf[k][i] if  ratings_tfidf[k].has_key(i) else 0 for i in elt])
 
     for i in range(0,5):
         dummy=word_category['words'].map(lambda x: tfidfFunc(x,i))
         word_category['tfidf'+str(i)]=dummy
-    return word_category,ratings_words
+        
+    tfidf_cols=[elt for elt in word_category.columns if not elt =='words']
+    #df=word_category[tfidf_cols]
+    #return(df.div(np.where(df.sum(axis=1)>0,df.sum(axis=1),1), axis=0))
+    return(word_category[tfidf_cols])
 
-def addFeatures(df,inputFiles,current_path,myindex):
+def get_Features_columns(inputFiles,current_path,myindex):
+    df=pd.DataFrame()
     for myfile in inputFiles:
         inputFName=current_path+myfile
         inJSON = json.load(open(inputFName, "r"))
@@ -463,57 +481,86 @@ def addFeatures(df,inputFiles,current_path,myindex):
             df[cols]=dummy
         else:
             df[cols]=dummy.ix[myindex,:]
+    return(df)
 
-def addWords(word_category,ratings_words,numWords,myindex,all_words=[]):
-    ratings_set={}
-    if  all_words==[]:
-        for i in range(0,5):
-            a=list(ratings_words[i].ix[:,0])
-            aa=np.concatenate(a)
-            ratings_set[i]=set(aa)
-            min_len=len(ratings_set[0])
-            if len(ratings_set[i])<min_len:
-                min_len=len(ratings_set[i])
+        
+        
+def get_AllWords(ratings_tfidf,numWords):
+    my_min_words=np.min([len(ratings_tfidf[i]) for i in range(5)])
+    my_min_words=np.min([my_min_words,numWords])
+    AllWords_dict={}
+    for i in range(5):
+        my_zip=zip(*list(ratings_tfidf[i].iteritems()))
+        my_index=np.argsort(my_zip[1])[::-1]
+        my_zipp=np.array(zip(*my_zip))
+        # tuple of(word, tfidf), ordered with tfidf
+        #i is the rating
+        AllWords_dict[i]=my_zipp[my_index][:my_min_words]
+        
+    AllWords=[0]*5
+    for i in range(5):
+        AllWords[i]=set(zip(*AllWords_dict[i])[0])
+        
+    AllWords_dict=None
+        
+    my_union=set()
+    my_intersection=set()
+    for i in range(5):
+        my_union=my_union.union(AllWords[i])
+        my_intersection=my_intersection.intersection(AllWords[i])
 
-        # select most popular words, and equal numbers from all classes
-        print('start word selection')
-        for i in range(0,5):
-            good_set= nltk.FreqDist(ratings_set[i]).most_common(min(numWords,min_len))
-            good_set=zip(*good_set)[0]
-            ratings_set[i]=ratings_set[i].intersection(good_set)
-        print('stop word selection')
+    AllWords=list(my_union.difference(my_intersection))
+        
+    return(AllWords)
 
 
-        ratings_intersect=ratings_set[i]
-        for i in range(0,5):
-            ratings_intersect=ratings_intersect.intersection(ratings_set[i])
-
-        ratings_union=set([])
-        for i in range(0,5):
-            ratings_union=ratings_union.union(ratings_set[i])
-
-        ratings_diff=ratings_union.difference(ratings_intersect)
-        for s in ratings_diff:
-            is_crap=1
-            for ss in s:
-                is_crap=is_crap*(not ss.isalpha())
-            if is_crap==0:
-                all_words.append(s)
-    def is_words_in(word, elt):
-        return (word in elt)*1
-
+def get_Words_columns(AllWords,inputFName1,myindex=None):
+    
+    def is_words_in(my_word,elt):
+        return np.where((my_word in elt),1,0)
     words_df=pd.DataFrame()
-    words_df['rating_']=word_category['rating']
-    for word in all_words:
-        words_df[word]=word_category['words'].map(lambda x: is_words_in(word,x) )
-    return {'words_df':words_df,'all_words':all_words}
 
-#Functions: Prepare Data Frames II
+    inJSON1 = json.load(open(inputFName1, "r"))
+    word_category=pd.DataFrame(inJSON1)
+    word_category.columns=['words']
+    if not myindex==None:
+        word_category=word_category.ix[myindex,:]
 
-def create_Train_Test_files(my_paths,my_path_keys):
+    for my_word in AllWords:
+        words_df[my_word]=word_category['words'].map(lambda elt: is_words_in(my_word,elt) )
+    
+    words_cols=[elt for elt in words_df.columns if not elt =='words']
+    return(words_df[words_cols])
+        
+        
+
+def get_ratings(inputFName2,myindex=None):
+    
+    inJSON2 = json.load(open(inputFName2, "r"))
+    
+    df_ratings=pd.DataFrame()
+    df_ratings['rating']=pd.DataFrame(inJSON2)['rating']
+    if not myindex==None:
+        df_ratings=df_ratings.ix[myindex,:]
+
+    return (df_ratings)
+
+############################################################################################################
+########################################### Functions: Prepare Data Frames II ###############################
+############################################################################################################
+def prepare_data(current_path,inputFilenames,outputFilenames,myFunctions):
+    for i in range(len(myFunctions)):
+        
+        myFunction=myFunctions[i]      
+        inputFName=current_path+inputFilenames[i]
+        outputFName=current_path+outputFilenames[i]
+        myFunction(inputFName, outputFName)
 
 
-    inputFilenames=["kaggle.json","splitWords.json","splitWords.json","remove_punctuation.json",\
+def create_Train_Test_files(my_paths,my_path_keys,fileName="kaggle.json"):
+
+
+    inputFilenames=[fileName,"splitWords.json","splitWords.json","remove_punctuation.json",\
                     "remove_punctuation.json","remove_punctuation.json","remove_punctuation.json",\
                     "negation.json","propNounConcat.json","lower_words.json","removeStopWords.json"]
     outputFilenames=["splitWords.json","puncCount.json","remove_punctuation.json","avgWordLength.json",\
@@ -528,46 +575,94 @@ def create_Train_Test_files(my_paths,my_path_keys):
         
         current_path=my_paths[i]
         prepare_data(current_path,inputFilenames,outputFilenames,myFunctions)
+        
 
-
-def create_Train_Test_data(my_paths,my_path_keys,myindex=(None,None),addWords_bool=True):
+def create_Train_Test_data(my_paths,my_path_keys,myindex=(None,None),addWords_bool=True,test_rating=True):
+    
     inputFiles=["puncCount.json","avgWordLength.json","isFirstPerson.json","posTag.json"]
     results={}
     for i,current_path_key in enumerate(my_path_keys):
-
+        df_current=pd.DataFrame()
         current_path=my_paths[i]
 
         inputFName1=current_path+"stemming.json"
         inputFName2=current_path+"kaggle.json" 
-        df_features,ratings_words=addTFIDF(inputFName1,inputFName2,myindex=myindex[i])
-        addFeatures(df_features,inputFiles,current_path,myindex=myindex[i])
-        if addWords_bool:
-            if current_path_key=='train':
-                all_words=addWords(df_features,ratings_words,1000,myindex[i])['all_words']
-                df_words=addWords(df_features,ratings_words,1000,myindex[i])['words_df']
-            if current_path_key=='test':
-                df_words=addWords(df_features,ratings_words,1000,myindex[i],all_words)['words_df']
-
-
-        df=pd.DataFrame()
-        cols=[elt for elt in df_features.columns if not elt=='words']
-        df_features=df_features[cols]
-        df[df_features.columns]=df_features
+        
+        if (current_path_key=='train'):
+            ratings_words=get_ratings_words(inputFName1,inputFName2,myindex=myindex[i])
+            ratings_freq=get_frequencies(ratings_words)
+            ratings_tfidf=get_ratings_tfidf(ratings_words)
+            
+            ratings_df_current=get_ratings(inputFName2,myindex=myindex[i])
+            df_current[ratings_df_current.columns]=ratings_df_current
+            
+            if (addWords_bool):
+                AllWords=get_AllWords(ratings_tfidf,200)
 
         
-        if addWords_bool:
-            
-            cols=[elt for elt in df_words.columns if not elt=='rating_']
-            df[cols]=df_words[cols]
-            df_dictionary= transform_csv(df_words, target_col='rating_')
-            (X, y)=transform_sklearn_dictionary(df_dictionary)
-            clf = MultinomialNB()
-            clf.fit(X, y)
-            for i in range(5):
-                df['bayes_'+str(i)]=clf.predict_proba(X)[:,i]
+        freq_df_current=get_frequency_columns(ratings_freq,inputFName1,myindex=myindex[i])
+        tfidf_df_current=get_TFIDF_columns(ratings_tfidf,inputFName1,myindex=myindex[i])
+        features_df_current=get_Features_columns(inputFiles,current_path,myindex[i])
 
-        results[current_path_key]=df
+        
+        df_current[tfidf_df_current.columns]=tfidf_df_current
+        df_current[features_df_current.columns]=features_df_current
+        df_current[freq_df_current.columns]=freq_df_current
+        
+        if ((current_path_key=='test') & test_rating):
+            ratings_df_current=get_ratings(inputFName2,myindex=myindex[i])
+            df_current[ratings_df_current.columns]=ratings_df_current
+     
+        if (addWords_bool):
+            AllWords_df_current=get_Words_columns(AllWords,inputFName1,myindex=myindex[i])
+            df_current[AllWords_df_current.columns]=AllWords_df_current
+        
+        results[current_path_key]=df_current
+        
+    if (addWords_bool):       
+        return(results,ratings_words,ratings_tfidf,ratings_freq,AllWords)
+    return(results,ratings_words,ratings_freq,ratings_tfidf)
 
-    return results
+
+def create_Test_data(test_path,all_results,fileName,test_rating=False,addWords_bool=True):
+    
+    ratings_tfidf=all_results["ratings_tfidf"]
+    ratings_words=all_results["ratings_words"]
+    ratings_freq=all_results["ratings_freq"]
+    if addWords_bool:
+        AllWords=all_results['AllWords']
+
+    inputFiles=["puncCount.json","avgWordLength.json","isFirstPerson.json","posTag.json"]
+    results={}
+
+    df_current=pd.DataFrame()
+    current_path=test_path
+
+    inputFName2=fileName
+    inputFName1=current_path+"stemming.json"
+    inputFName2=current_path+"kaggle.json" 
+
+
+    
+    freq_df_current=get_frequency_columns(ratings_freq,inputFName1,myindex=None)
+    tfidf_df_current=get_TFIDF_columns(ratings_tfidf,inputFName1,myindex=None)
+    features_df_current=get_Features_columns(inputFiles,current_path,myindex=None)
+
+
+    df_current[tfidf_df_current.columns]=tfidf_df_current
+    df_current[features_df_current.columns]=features_df_current
+    df_current[freq_df_current.columns]=freq_df_current
+
+    if (test_rating):
+        ratings_df_current=get_ratings(inputFName2,myindex=None)
+        df_current[ratings_df_current.columns]=ratings_df_current
+
+    if (addWords_bool):
+        AllWords_df_current=get_Words_columns(AllWords,inputFName1,myindex=None)
+        df_current[AllWords_df_current.columns]=AllWords_df_current
+
+    return(df_current)
+
+    
 
 
