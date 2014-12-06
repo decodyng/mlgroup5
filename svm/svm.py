@@ -29,7 +29,7 @@ rtCLF = Pipeline([('tfidf', fe.TfidfVectorizer(
                         sublinear_tf=True, analyzer='word', max_features=10000)),
                    #('std', preproc.StandardScaler(with_mean=False)),  norm='l2', ngram_range=(1,2),
                    ('norm', preproc.Normalizer()),
-                   ('svc', SVC(C=10, kernel = 'rbf', gamma=1))])
+                   ('svc', SVC(C=1, kernel = 'rbf', gamma=0.1, class_weight='auto'))])
 
 # Fit the classifier and predict on test set
 rtCLF.fit(X_train, y_train)
